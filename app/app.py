@@ -193,5 +193,6 @@ def update_figure(selected_communes):
 
 if __name__ == "__main__":
     import os
-    debug = False if os.environ["DASH_DEBUG_MODE"] == "False" else True
-    app.run_server(host="0.0.0.0", port=8050, debug=debug)
+    debug = bool(os.environ.get("DASH_DEBUG_MODE", True))
+    port = int(os.environ.get("PORT", 8050))
+    app.run_server(host="0.0.0.0", port=port, debug=debug)
