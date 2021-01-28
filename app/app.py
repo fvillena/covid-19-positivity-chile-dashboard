@@ -10,6 +10,9 @@ import geopandas as gpd
 import json
 import random
 import requests
+import time
+import logging
+logger = logging.getLogger(__name__)
 
 server = flask.Flask(__name__)
 app = dash.Dash(__name__, server=server, external_stylesheets=[dbc.themes.BOOTSTRAP])
@@ -47,14 +50,34 @@ def normalize(word):
     result = [l for l in word if l in alphabet]
     return "".join(result)
 
+country_data = None
+positivity_by_commune = None
+communes_g = None
+chile_g = None
+country_data_last_update = 0
+positivity_by_commune_last_update = 0
+communes_g_last_update = 0
+chile_g_last_update = 0
+period = 3600
+
 def get_country_data():
-    country_data = pd.read_csv("https://github.com/MinCiencia/Datos-COVID19/raw/master/output/producto49/Positividad_Diaria_Media_std.csv",parse_dates=["Fecha"])
+    global country_data
+    global country_data_last_update
+    if time.time() - country_data_last_update > period:
+        logger.info("downloading country_data")
+        country_data = pd.read_csv("https://github.com/MinCiencia/Datos-COVID19/raw/master/output/producto49/Positividad_Diaria_Media_std.csv",parse_dates=["Fecha"])
+        country_data_last_update = time.time()
     # country_data["Total"] = random.random()
     return country_data[country_data.Serie.isin(["positividad"])]
 
 def get_communal_data(selected_communes = None):
-    positivity_by_commune = pd.read_csv("https://github.com/MinCiencia/Datos-COVID19/raw/master/output/producto65/PositividadPorComuna_std.csv",parse_dates=["Fecha"])
-    positivity_by_commune["Positividad"] = positivity_by_commune["Positividad"]/100
+    global positivity_by_commune
+    global positivity_by_commune_last_update
+    if time.time() - positivity_by_commune_last_update > period:
+        logger.info("downloading communal_data")
+        positivity_by_commune = pd.read_csv("https://github.com/MinCiencia/Datos-COVID19/raw/master/output/producto65/PositividadPorComuna_std.csv",parse_dates=["Fecha"])
+        positivity_by_commune_last_update = time.time()
+        positivity_by_commune["Positividad"] = positivity_by_commune["Positividad"]/100
     # positivity_by_commune["Positividad"] = random.random()
     if selected_communes == None:
         return positivity_by_commune
@@ -77,14 +100,24 @@ def get_country_choropeth_data():
     return country_data
 
 def get_rm_geo_data():
-    communes_g = requests.get("https://raw.githubusercontent.com/jlhonora/geo/master/region_metropolitana_de_santiago/all.geojson").json()
-    for i,feature in enumerate(communes_g["features"]):
-        communes_g["features"][i]["properties"]["NOM_COM_NORM"] = normalize(feature["properties"]["NOM_COM"])
+    global communes_g_last_update
+    global communes_g
+    if time.time() - communes_g_last_update > period:
+        logger.info("downloading communes_g")
+        communes_g = requests.get("https://raw.githubusercontent.com/jlhonora/geo/master/region_metropolitana_de_santiago/all.geojson").json()
+        communes_g_last_update = time.time()
+        for i,feature in enumerate(communes_g["features"]):
+            communes_g["features"][i]["properties"]["NOM_COM_NORM"] = normalize(feature["properties"]["NOM_COM"])
     return communes_g
 
 def get_country_geo_data():
-    chile_g = gpd.read_file("https://raw.githubusercontent.com/jlhonora/geo/master/low_res/all.geojson")
-    chile_g = chile_g.dropna().sort_values("COD_REGI")
+    global chile_g_last_update
+    global chile_g
+    if time.time() - chile_g_last_update > period:
+        logger.info("downloading chile_g")
+        chile_g = gpd.read_file("https://raw.githubusercontent.com/jlhonora/geo/master/low_res/all.geojson")
+        chile_g_last_update = time.time()
+        chile_g = chile_g.dropna().sort_values("COD_REGI")
     chile_g_geojson = json.loads(chile_g.to_json())
     return chile_g_geojson
 
