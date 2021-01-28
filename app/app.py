@@ -62,8 +62,8 @@ def get_communal_data(selected_communes = None):
 def get_rm_choropleth_data():
     positivity_by_commune = get_communal_data()
     positivity_by_commune["Comuna norm"] = positivity_by_commune["Comuna"].apply(normalize)
-    data_rm = positivity_by_commune.loc[positivity_by_commune["Codigo region"] == 13][["Comuna","Comuna norm","Codigo comuna","Fecha","Positividad"]].groupby(by=["Comuna norm"]).agg("max").reset_index()
-    return data_rm
+    max_date_idx = positivity_by_commune.loc[positivity_by_commune["Codigo region"] == 13][["Comuna norm","Fecha"]].groupby(by=["Comuna norm"])["Fecha"].idxmax()
+    return positivity_by_commune.loc[max_date_idx]
 
 def get_rm_geo_data():
     communes_g = requests.get("https://raw.githubusercontent.com/jlhonora/geo/master/region_metropolitana_de_santiago/all.geojson").json()
