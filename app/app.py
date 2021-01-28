@@ -7,6 +7,7 @@ import plotly.express as px
 import dash.dependencies
 import pandas as pd
 import random
+import requests
 
 server = flask.Flask(__name__)
 app = dash.Dash(__name__, server=server, external_stylesheets=[dbc.themes.BOOTSTRAP])
@@ -27,6 +28,23 @@ green_rect_props = {
     }
 }
 
+alphabet = "abcdefghijklmnopqrstuvwxyz"
+def normalize(word):
+    word = word.lower()
+    word = word.replace("á","a")
+    word = word.replace("é","e")
+    word = word.replace("è","e")
+    word = word.replace("í","i")
+    word = word.replace("î","i")
+    word = word.replace("ó","o")
+    word = word.replace("ú","u")
+    word = word.replace("ü","u")
+    word = word.replace("ḿ","m")
+    word = word.replace("ń","m")
+    word = word.replace("ñ","n")
+    result = [l for l in word if l in alphabet]
+    return "".join(result)
+
 def get_country_data():
     country_data = pd.read_csv("https://github.com/MinCiencia/Datos-COVID19/raw/master/output/producto49/Positividad_Diaria_Media_std.csv",parse_dates=["Fecha"])
     # country_data["Total"] = random.random()
@@ -40,6 +58,32 @@ def get_communal_data(selected_communes = None):
         return positivity_by_commune
     else:
         return positivity_by_commune.loc[positivity_by_commune.Comuna.isin(selected_communes)]
+
+def get_rm_choropleth_data():
+    positivity_by_commune = get_communal_data()
+    positivity_by_commune["Comuna norm"] = positivity_by_commune["Comuna"].apply(normalize)
+    data_rm = positivity_by_commune.loc[positivity_by_commune["Codigo region"] == 13][["Comuna","Comuna norm","Codigo comuna","Fecha","Positividad"]].groupby(by=["Comuna norm"]).agg("max").reset_index()
+    return data_rm
+
+def get_rm_geo_data():
+    communes_g = requests.get("https://raw.githubusercontent.com/jlhonora/geo/master/region_metropolitana_de_santiago/all.geojson").json()
+    for i,feature in enumerate(communes_g["features"]):
+        communes_g["features"][i]["properties"]["NOM_COM_NORM"] = normalize(feature["properties"]["NOM_COM"])
+    return communes_g
+
+def choropleth_fig():
+    fig = px.choropleth(
+        get_rm_choropleth_data(), 
+        geojson=get_rm_geo_data(), 
+        color_continuous_scale="Oranges",
+        locations="Comuna norm", 
+        color='Positividad',
+        featureidkey="properties.NOM_COM_NORM",
+        hover_data={"Comuna":True,"Positividad":":.1%","Comuna norm":False}
+    )
+    fig.update_geos(fitbounds="locations", visible=False)
+    fig.update_layout(coloraxis_colorbar_tickformat='.1%')
+    return fig
 
 communes = get_communal_data().Comuna.value_counts().index.tolist()
 commune_options = [{"label":commune,"value":commune} for commune in communes]
@@ -84,7 +128,12 @@ def serve_layout():
                 id="commune-dropdown"
             ),
             dcc.Graph(id='graph-with-dropdown'),
-        ])    
+        ]),
+        html.H2(children="Última tasa de positividad en la Región Metropolitana"),
+        dcc.Graph(
+            id='choropleth',
+            figure=choropleth_fig()
+        ),
     ])
 
 app.layout = serve_layout
