@@ -69,7 +69,11 @@ def get_rm_choropleth_data():
 
 def get_country_choropeth_data():
     communal_data = get_communal_data()
-    country_data = communal_data.loc[communal_data.groupby(by=["Codigo comuna"])["Fecha"].idxmax()].groupby(by="Codigo region").agg({"Positividad":"mean","Region":"max"}).reset_index()
+    country_data = communal_data.loc[communal_data.groupby(by=["Codigo comuna"])["Fecha"].idxmax()]
+    region_population = country_data.groupby("Region").agg({"Poblacion":"sum"})
+    country_data["weighted_positivity"] = country_data.apply(lambda x: (x["Poblacion"]*x["Positividad"])/region_population.loc[x["Region"]], axis=1)
+    country_data = country_data.groupby(by=["Codigo region"]).agg({"weighted_positivity":"sum","Region":"max"}).reset_index()
+    country_data.rename(columns={"weighted_positivity":"Positividad"},inplace=True)
     return country_data
 
 def get_rm_geo_data():
