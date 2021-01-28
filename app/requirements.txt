@@ -2,3 +2,4 @@ dash
 dash-daq
 dash-bootstrap-components
 pandas
+geopandas

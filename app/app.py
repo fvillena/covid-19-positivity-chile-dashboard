@@ -6,6 +6,8 @@ import flask
 import plotly.express as px
 import dash.dependencies
 import pandas as pd
+import geopandas as gpd
+import json
 import random
 import requests
 
@@ -65,11 +67,22 @@ def get_rm_choropleth_data():
     max_date_idx = positivity_by_commune.loc[positivity_by_commune["Codigo region"] == 13][["Comuna norm","Fecha"]].groupby(by=["Comuna norm"])["Fecha"].idxmax()
     return positivity_by_commune.loc[max_date_idx]
 
+def get_country_choropeth_data():
+    communal_data = get_communal_data()
+    country_data = communal_data.loc[communal_data.groupby(by=["Codigo comuna"])["Fecha"].idxmax()].groupby(by="Codigo region").agg({"Positividad":"mean","Region":"max"}).reset_index()
+    return country_data
+
 def get_rm_geo_data():
     communes_g = requests.get("https://raw.githubusercontent.com/jlhonora/geo/master/region_metropolitana_de_santiago/all.geojson").json()
     for i,feature in enumerate(communes_g["features"]):
         communes_g["features"][i]["properties"]["NOM_COM_NORM"] = normalize(feature["properties"]["NOM_COM"])
     return communes_g
+
+def get_country_geo_data():
+    chile_g = gpd.read_file("https://raw.githubusercontent.com/jlhonora/geo/master/low_res/all.geojson")
+    chile_g = chile_g.dropna().sort_values("COD_REGI")
+    chile_g_geojson = json.loads(chile_g.to_json())
+    return chile_g_geojson
 
 def choropleth_fig():
     fig = px.choropleth(
@@ -80,6 +93,20 @@ def choropleth_fig():
         color='Positividad',
         featureidkey="properties.NOM_COM_NORM",
         hover_data={"Comuna":True,"Positividad":":.1%","Comuna norm":False}
+    )
+    fig.update_geos(fitbounds="locations", visible=False)
+    fig.update_layout(coloraxis_colorbar_tickformat='.1%')
+    return fig
+
+def choropleth_country_fig():
+    fig = px.choropleth(
+        get_country_choropeth_data(), 
+        geojson=get_country_geo_data(), 
+        color_continuous_scale="Oranges",
+        locations="Codigo region", 
+        color='Positividad',
+        featureidkey="properties.COD_REGI",
+        hover_data={"Region":True,"Positividad":":.1%","Codigo region":False}
     )
     fig.update_geos(fitbounds="locations", visible=False)
     fig.update_layout(coloraxis_colorbar_tickformat='.1%')
@@ -133,6 +160,11 @@ def serve_layout():
         dcc.Graph(
             id='choropleth',
             figure=choropleth_fig()
+        ),
+        html.H2(children="Última tasa de positividad en el territorio nacional"),
+        dcc.Graph(
+            id='choropleth-country',
+            figure=choropleth_country_fig()
         ),
     ])
 
