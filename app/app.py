@@ -11,8 +11,11 @@ import json
 import random
 import requests
 import time
+import pathlib
 import logging
 logger = logging.getLogger(__name__)
+
+app_folder = pathlib.Path(__file__).parent.absolute()
 
 server = flask.Flask(__name__)
 app = dash.Dash(__name__, server=server, external_stylesheets=[dbc.themes.BOOTSTRAP])
@@ -52,12 +55,8 @@ def normalize(word):
 
 country_data = None
 positivity_by_commune = None
-communes_g = None
-chile_g = None
 country_data_last_update = 0
 positivity_by_commune_last_update = 0
-communes_g_last_update = 0
-chile_g_last_update = 0
 period = 30
 
 def get_country_data():
@@ -99,32 +98,19 @@ def get_country_choropeth_data():
     country_data.rename(columns={"weighted_positivity":"Positividad"},inplace=True)
     return country_data
 
-def get_rm_geo_data():
-    global communes_g_last_update
-    global communes_g
-    if time.time() - communes_g_last_update > period:
-        logger.info("downloading communes_g")
-        communes_g = requests.get("https://raw.githubusercontent.com/jlhonora/geo/master/region_metropolitana_de_santiago/all.geojson").json()
-        communes_g_last_update = time.time()
-        for i,feature in enumerate(communes_g["features"]):
-            communes_g["features"][i]["properties"]["NOM_COM_NORM"] = normalize(feature["properties"]["NOM_COM"])
-    return communes_g
+with open(app_folder / "data/rm.geojson") as j:
+        communes_g = json.load(j)
+for i,feature in enumerate(communes_g["features"]):
+    communes_g["features"][i]["properties"]["NOM_COM_NORM"] = normalize(feature["properties"]["NOM_COM"])
 
-def get_country_geo_data():
-    global chile_g_last_update
-    global chile_g
-    if time.time() - chile_g_last_update > period:
-        logger.info("downloading chile_g")
-        chile_g = gpd.read_file("https://raw.githubusercontent.com/jlhonora/geo/master/low_res/all.geojson")
-        chile_g_last_update = time.time()
-        chile_g = chile_g.dropna().sort_values("COD_REGI")
-    chile_g_geojson = json.loads(chile_g.to_json())
-    return chile_g_geojson
+chile_g = gpd.read_file(app_folder / "data/cl.geojson")
+chile_g = chile_g.dropna().sort_values("COD_REGI")
+chile_g_geojson = json.loads(chile_g.to_json())
 
 def choropleth_fig():
     fig = px.choropleth(
         get_rm_choropleth_data(), 
-        geojson=get_rm_geo_data(), 
+        geojson=communes_g, 
         color_continuous_scale="Oranges",
         locations="Comuna norm", 
         color='Positividad',
@@ -138,7 +124,7 @@ def choropleth_fig():
 def choropleth_country_fig():
     fig = px.choropleth_mapbox(
         get_country_choropeth_data(), 
-        geojson=get_country_geo_data(), 
+        geojson=chile_g_geojson, 
         color_continuous_scale="Oranges",
         locations="Codigo region", 
         color='Positividad',
