@@ -58,7 +58,7 @@ country_data_last_update = 0
 positivity_by_commune_last_update = 0
 communes_g_last_update = 0
 chile_g_last_update = 0
-period = 3600
+period = 30
 
 def get_country_data():
     global country_data
@@ -136,16 +136,20 @@ def choropleth_fig():
     return fig
 
 def choropleth_country_fig():
-    fig = px.choropleth(
+    fig = px.choropleth_mapbox(
         get_country_choropeth_data(), 
         geojson=get_country_geo_data(), 
         color_continuous_scale="Oranges",
         locations="Codigo region", 
         color='Positividad',
         featureidkey="properties.COD_REGI",
-        hover_data={"Region":True,"Positividad":":.1%","Codigo region":False}
+        hover_data={"Region":True,"Positividad":":.1%","Codigo region":False},
+        height=800,
+        mapbox_style="carto-positron",
+        zoom=3,
+        center = {"lat": -38, "lon": -70.6653},
     )
-    fig.update_geos(fitbounds="locations", visible=False)
+    # fig.update_geos(fitbounds="locations", visible=False)
     fig.update_layout(coloraxis_colorbar_tickformat='.1%')
     return fig
 
