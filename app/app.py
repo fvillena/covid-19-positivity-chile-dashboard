@@ -28,7 +28,7 @@ green_rect_props = {
     "line_width":0,
     "fillcolor":"green",
     "opacity":0.2,
-    "annotation_text":"Tasa de positividad recomendada",
+    "annotation_text":"Positividad recomendada",
     "annotation_position":"bottom left",
     "annotation_font":{
         "color":"darkgreen"
@@ -38,8 +38,25 @@ green_rect_props = {
 figure_layout = {
     "transition_duration":500,
     "yaxis":{
-        "tickformat":".1%"
-        }
+        "tickformat":".1%",
+        "fixedrange":True,
+        "automargin":True
+        },
+    "xaxis":{
+        "fixedrange":True,
+        "automargin":True
+        },
+    "legend": {
+        "orientation": 'h',
+        "yanchor":"bottom",
+        "y":1.02,
+        "xanchor":"right",
+        "x":1
+    },
+    "margin":{
+        "r":0
+    }
+    
 }
 
 meta_tags = [
@@ -133,10 +150,10 @@ def choropleth_fig():
         locations="Comuna norm", 
         color='Positividad',
         featureidkey="properties.NOM_COM_NORM",
-        hover_data={"Comuna":True,"Positividad":":.1%","Comuna norm":False}
+        hover_data={"Comuna":True,"Positividad":":.1%","Comuna norm":False},
     )
     fig.update_geos(fitbounds="locations", visible=False)
-    fig.update_layout(coloraxis_colorbar_tickformat='.1%')
+    fig.update_layout(coloraxis_showscale=False,margin={"r":0,"t":0,"l":0,"b":0})
     return fig
 
 def choropleth_country_fig():
@@ -150,11 +167,11 @@ def choropleth_country_fig():
         hover_data={"Region":True,"Positividad":":.1%","Codigo region":False},
         height=800,
         mapbox_style="carto-positron",
-        zoom=3,
-        center = {"lat": -38, "lon": -70.6653},
+        zoom=3.4,
+        center = {"lat": -39, "lon": -70.6653}
     )
     # fig.update_geos(fitbounds="locations", visible=False)
-    fig.update_layout(coloraxis_colorbar_tickformat='.1%')
+    fig.update_layout(coloraxis_showscale=False,margin={"r":0,"t":0,"l":0,"b":0})
     return fig
 
 def country_positivity_fig():
@@ -233,7 +250,8 @@ def update_figure(selected_communes):
         x = "Fecha",
         y = "Positividad",
         color = "Comuna",
-        labels=dict(Positividad="Tasa de positividad")
+        labels=dict(Positividad="Tasa de positividad"),
+
     )
     fig.add_hrect(**green_rect_props)
     fig.update_layout(**figure_layout)
