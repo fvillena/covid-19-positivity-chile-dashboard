@@ -143,14 +143,19 @@ def get_country_choropeth_data():
     return country_data
 
 def choropleth_fig():
-    fig = px.choropleth(
+    fig = px.choropleth_mapbox(
         get_rm_choropleth_data(), 
         geojson=communes_g, 
-        color_continuous_scale="Oranges",
+        color_continuous_scale="PiYG_r",
+        color_continuous_midpoint=0.05,
         locations="Comuna norm", 
         color='Positividad',
         featureidkey="properties.NOM_COM_NORM",
         hover_data={"Comuna":True,"Positividad":":.1%","Comuna norm":False},
+        mapbox_style="carto-positron",
+        zoom=7.5,
+        center = {"lat": -33.5826900, "lon": -70.6472400},
+        opacity=0.5
     )
     fig.update_geos(fitbounds="locations", visible=False)
     fig.update_layout(coloraxis_showscale=False,margin={"r":0,"t":0,"l":0,"b":0})
@@ -160,7 +165,8 @@ def choropleth_country_fig():
     fig = px.choropleth_mapbox(
         get_country_choropeth_data(), 
         geojson=chile_g_geojson, 
-        color_continuous_scale="Oranges",
+        color_continuous_scale="PiYG_r",
+        color_continuous_midpoint=0.05,
         locations="Codigo region", 
         color='Positividad',
         featureidkey="properties.COD_REGI",
@@ -168,7 +174,8 @@ def choropleth_country_fig():
         height=800,
         mapbox_style="carto-positron",
         zoom=3.4,
-        center = {"lat": -39, "lon": -70.6653}
+        center = {"lat": -39, "lon": -70.6653},
+        opacity=0.5
     )
     # fig.update_geos(fitbounds="locations", visible=False)
     fig.update_layout(coloraxis_showscale=False,margin={"r":0,"t":0,"l":0,"b":0})
