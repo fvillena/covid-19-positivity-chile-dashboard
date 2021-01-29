@@ -14,14 +14,13 @@ import time
 import pathlib
 import logging
 logger = logging.getLogger(__name__)
-
 app_folder = pathlib.Path(__file__).parent.absolute()
 
-server = flask.Flask(__name__)
-app = dash.Dash(__name__, server=server, external_stylesheets=[dbc.themes.BOOTSTRAP])
-app.config.suppress_callback_exceptions = True
-
-app.title = 'Tasa de positividad por COVID-19 en Chile'
+country_data = None
+positivity_by_commune = None
+country_data_last_update = 0
+positivity_by_commune_last_update = 0
+period = 30
 
 green_rect_props = {
     "y0":0,
@@ -34,6 +33,13 @@ green_rect_props = {
     "annotation_font":{
         "color":"darkgreen"
     }
+}
+
+figure_layout = {
+    "transition_duration":500,
+    "yaxis":{
+        "tickformat":".1%"
+        }
 }
 
 alphabet = "abcdefghijklmnopqrstuvwxyz"
@@ -52,12 +58,6 @@ def normalize(word):
     word = word.replace("ñ","n")
     result = [l for l in word if l in alphabet]
     return "".join(result)
-
-country_data = None
-positivity_by_commune = None
-country_data_last_update = 0
-positivity_by_commune_last_update = 0
-period = 30
 
 def get_country_data():
     global country_data
@@ -98,15 +98,6 @@ def get_country_choropeth_data():
     country_data.rename(columns={"weighted_positivity":"Positividad"},inplace=True)
     return country_data
 
-with open(app_folder / "data/rm.geojson") as j:
-        communes_g = json.load(j)
-for i,feature in enumerate(communes_g["features"]):
-    communes_g["features"][i]["properties"]["NOM_COM_NORM"] = normalize(feature["properties"]["NOM_COM"])
-
-chile_g = gpd.read_file(app_folder / "data/cl.geojson")
-chile_g = chile_g.dropna().sort_values("COD_REGI")
-chile_g_geojson = json.loads(chile_g.to_json())
-
 def choropleth_fig():
     fig = px.choropleth(
         get_rm_choropleth_data(), 
@@ -138,16 +129,6 @@ def choropleth_country_fig():
     # fig.update_geos(fitbounds="locations", visible=False)
     fig.update_layout(coloraxis_colorbar_tickformat='.1%')
     return fig
-
-communes = get_communal_data().Comuna.value_counts().index.tolist()
-commune_options = [{"label":commune,"value":commune} for commune in communes]
-
-figure_layout = {
-    "transition_duration":500,
-    "yaxis":{
-        "tickformat":".1%"
-        }
-}
 
 def country_positivity_fig():
     fig = px.line(
@@ -194,6 +175,24 @@ def serve_layout():
             figure=choropleth_country_fig()
         ),
     ])
+
+with open(app_folder / "data/rm.geojson") as j:
+        communes_g = json.load(j)
+for i,feature in enumerate(communes_g["features"]):
+    communes_g["features"][i]["properties"]["NOM_COM_NORM"] = normalize(feature["properties"]["NOM_COM"])
+
+chile_g = gpd.read_file(app_folder / "data/cl.geojson")
+chile_g = chile_g.dropna().sort_values("COD_REGI")
+chile_g_geojson = json.loads(chile_g.to_json())
+
+communes = get_communal_data().Comuna.value_counts().index.tolist()
+commune_options = [{"label":commune,"value":commune} for commune in communes]
+
+server = flask.Flask(__name__)
+app = dash.Dash(__name__, server=server, external_stylesheets=[dbc.themes.BOOTSTRAP])
+app.config.suppress_callback_exceptions = True
+
+app.title = 'Tasa de positividad por COVID-19 en Chile'
 
 app.layout = serve_layout
 
