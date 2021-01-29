@@ -42,6 +42,33 @@ figure_layout = {
         }
 }
 
+meta_tags = [
+    # A description of the app, used by e.g.
+    # search engines when displaying search results.
+    {
+        'name': 'description',
+        'content': 'Tasa de positividad por coronavirus en chile por región y fecha. Este indicador debiese mantenerse bajo el 5 %.'
+    },
+    # A tag that tells Internet Explorer (IE)
+    # to use the latest renderer version available
+    # to that browser (e.g. Edge)
+    {
+        'http-equiv': 'X-UA-Compatible',
+        'content': 'IE=edge'
+    },
+    # A tag that tells the browser not to scale
+    # desktop widths to fit mobile screens.
+    # Sets the width of the viewport (browser)
+    # to the width of the device, and the zoom level
+    # (initial scale) to 1.
+    #
+    # Necessary for "true" mobile support.
+    {
+      'name': 'viewport',
+      'content': 'width=device-width, initial-scale=1.0'
+    }
+]
+
 alphabet = "abcdefghijklmnopqrstuvwxyz"
 def normalize(word):
     word = word.lower()
@@ -189,10 +216,10 @@ communes = get_communal_data().Comuna.value_counts().index.tolist()
 commune_options = [{"label":commune,"value":commune} for commune in communes]
 
 server = flask.Flask(__name__)
-app = dash.Dash(__name__, server=server, external_stylesheets=[dbc.themes.BOOTSTRAP])
+app = dash.Dash(__name__, server=server, meta_tags=meta_tags, external_stylesheets=[dbc.themes.BOOTSTRAP])
 app.config.suppress_callback_exceptions = True
-
 app.title = 'Tasa de positividad por COVID-19 en Chile'
+
 
 app.layout = serve_layout
 
