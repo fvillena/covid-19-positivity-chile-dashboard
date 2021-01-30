@@ -18,8 +18,12 @@ app_folder = pathlib.Path(__file__).parent.absolute()
 
 country_data = None
 positivity_by_commune = None
+cases_by_region = None
+tests_by_region = None
 country_data_last_update = 0
 positivity_by_commune_last_update = 0
+cases_by_region_last_update = 0
+tests_by_region_last_update = 0
 period = 30
 
 green_rect_props = {
@@ -133,14 +137,32 @@ def get_rm_choropleth_data():
     max_date_idx = positivity_by_commune.loc[positivity_by_commune["Codigo region"] == 13][["Comuna norm","Fecha"]].groupby(by=["Comuna norm"])["Fecha"].idxmax()
     return positivity_by_commune.loc[max_date_idx]
 
+def get_by_region_data():
+    global cases_by_region
+    global tests_by_region
+    global cases_by_region_last_update
+    global tests_by_region_last_update
+    if time.time() - cases_by_region_last_update > period:
+        logger.info("downloading cases_by_region")
+        cases_by_region = pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto3/TotalesPorRegion_std.csv")
+        cases_by_region = cases_by_region.loc[cases_by_region.Categoria == "Casos nuevos totales"]
+    if time.time() - tests_by_region_last_update > period:
+        logger.info("downloading tests_by_region")
+        tests_by_region = pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto7/PCR_std.csv")
+    positivity_by_region = cases_by_region.merge(
+        tests_by_region.rename(columns={"fecha":"Fecha","numero":"Pruebas"})[["Region","Fecha","Pruebas","Codigo region"]],
+        how="inner",
+        validate="one_to_one"
+    )
+    positivity_by_region["Positividad"] = positivity_by_region.Total / positivity_by_region.Pruebas
+    positivity_by_region.dropna(inplace=True)
+    positivity_by_region["Fecha"] = pd.to_datetime(positivity_by_region["Fecha"])
+    return positivity_by_region
+
 def get_country_choropeth_data():
-    communal_data = get_communal_data()
-    country_data = communal_data.loc[communal_data.groupby(by=["Codigo comuna"])["Fecha"].idxmax()]
-    region_population = country_data.groupby("Region").agg({"Poblacion":"sum"})
-    country_data["weighted_positivity"] = country_data.apply(lambda x: (x["Poblacion"]*x["Positividad"])/region_population.loc[x["Region"]], axis=1)
-    country_data = country_data.groupby(by=["Codigo region"]).agg({"weighted_positivity":"sum","Region":"max"}).reset_index()
-    country_data.rename(columns={"weighted_positivity":"Positividad"},inplace=True)
-    return country_data
+    positivity_by_region = get_by_region_data()
+    max_date_idx = positivity_by_region.groupby(by=["Region"])["Fecha"].idxmax()
+    return positivity_by_region.loc[max_date_idx]
 
 def choropleth_fig():
     fig = px.choropleth_mapbox(
