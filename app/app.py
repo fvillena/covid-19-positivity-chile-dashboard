@@ -225,6 +225,7 @@ def serve_layout():
             id='choropleth-country',
             figure=choropleth_country_fig()
         ),
+        html.Div(children=[html.Hr()] + ["Hecho con ❤ y 🐍 por "] + [html.A("Fabián Villena", href="https://fabianvillena.cl/")]),
     ])
 
 with open(app_folder / "data/rm.geojson") as j:
