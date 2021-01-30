@@ -49,37 +49,6 @@ figure_layout = {
     "xaxis":{
         "fixedrange":True,
         "automargin":True,
-        "rangeslider":{
-            "visible":True
-            },
-        "rangeselector": {
-            "buttons":[
-                {
-                    "count":1,
-                    "step":"month",
-                    "stepmode":"todate",
-                    "label":"1 Mes"
-                },
-                {
-                    "count":3,
-                    "step":"month",
-                    "stepmode":"todate",
-                    "label":"3 Meses"
-                },
-                {
-                    "count":6,
-                    "step":"month",
-                    "stepmode":"todate",
-                    "label":"6 Meses"
-                },
-                {
-                    "count":12,
-                    "step":"month",
-                    "stepmode":"todate",
-                    "label":"1 Año"
-                }
-            ],
-        },
         },
     "legend": {
         "orientation": 'h',
@@ -243,7 +212,40 @@ def country_positivity_fig():
     )
     fig.add_hrect(**green_rect_props)
     fig.update_layout(**figure_layout)
-    # fig.update_xaxes(rangeslider_visible=True)
+    xaxes_layout = {
+        "rangeslider":{
+            "visible":True
+            },
+        "rangeselector": {
+            "buttons":[
+                {
+                    "count":1,
+                    "step":"month",
+                    "stepmode":"todate",
+                    "label":"1 Mes"
+                },
+                {
+                    "count":3,
+                    "step":"month",
+                    "stepmode":"todate",
+                    "label":"3 Meses"
+                },
+                {
+                    "count":6,
+                    "step":"month",
+                    "stepmode":"todate",
+                    "label":"6 Meses"
+                },
+                {
+                    "count":12,
+                    "step":"month",
+                    "stepmode":"todate",
+                    "label":"1 Año"
+                }
+            ],
+        },
+    }
+    fig.update_xaxes(**xaxes_layout)
     return fig
 
 def serve_layout():
