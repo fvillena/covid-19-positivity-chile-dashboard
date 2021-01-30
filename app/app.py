@@ -48,7 +48,38 @@ figure_layout = {
         },
     "xaxis":{
         "fixedrange":True,
-        "automargin":True
+        "automargin":True,
+        "rangeslider":{
+            "visible":True
+            },
+        "rangeselector": {
+            "buttons":[
+                {
+                    "count":1,
+                    "step":"month",
+                    "stepmode":"todate",
+                    "label":"1 Mes"
+                },
+                {
+                    "count":3,
+                    "step":"month",
+                    "stepmode":"todate",
+                    "label":"3 Meses"
+                },
+                {
+                    "count":6,
+                    "step":"month",
+                    "stepmode":"todate",
+                    "label":"6 Meses"
+                },
+                {
+                    "count":12,
+                    "step":"month",
+                    "stepmode":"todate",
+                    "label":"1 Año"
+                }
+            ],
+        },
         },
     "legend": {
         "orientation": 'h',
@@ -58,7 +89,7 @@ figure_layout = {
         "x":1
     },
     "margin":{
-        "r":0
+        "r":5
     }
     
 }
@@ -180,7 +211,7 @@ def choropleth_fig():
         opacity=0.5
     )
     fig.update_geos(fitbounds="locations", visible=False)
-    fig.update_layout(coloraxis_showscale=False,margin={"r":0,"t":0,"l":0,"b":0})
+    fig.update_layout(coloraxis_showscale=False,margin={"r":5,"t":0,"l":5,"b":0})
     return fig
 
 def choropleth_country_fig():
@@ -200,7 +231,7 @@ def choropleth_country_fig():
         opacity=0.5
     )
     # fig.update_geos(fitbounds="locations", visible=False)
-    fig.update_layout(coloraxis_showscale=False,margin={"r":0,"t":0,"l":0,"b":0})
+    fig.update_layout(coloraxis_showscale=False,margin={"r":5,"t":0,"l":5,"b":0})
     return fig
 
 def country_positivity_fig():
@@ -212,6 +243,7 @@ def country_positivity_fig():
     )
     fig.add_hrect(**green_rect_props)
     fig.update_layout(**figure_layout)
+    # fig.update_xaxes(rangeslider_visible=True)
     return fig
 
 def serve_layout():
