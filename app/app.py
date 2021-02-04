@@ -74,7 +74,7 @@ meta_tags = [
     # search engines when displaying search results.
     {
         'name': 'description',
-        'content': 'Tasa de positividad por coronavirus en chile por región y fecha. Este indicador debiese mantenerse bajo el 5 %.'
+        'content': 'Tasa de positividad y vacunación por coronavirus en chile por región y fecha. La positividad debiese mantenerse bajo el 5 % y la vacunación al 80 %.'
     },
     # A tag that tells Internet Explorer (IE)
     # to use the latest renderer version available
@@ -295,12 +295,12 @@ def country_positivity_fig():
 
 def serve_layout():
     return html.Div(className = "container-md" ,children=[
-        html.H1(children='Positividad por Coronavirus en Chile'),
+        html.H1(children='Positividad y Vacunación por Coronavirus en Chile'),
 
         html.Div(children=f'''
-            La tasa de positividad es  el porcentaje de personas que dan positivo para la infección de entre todas a las que se les ha hecho prueba PCR durante un tiempo determinado. La Organización Mundial de la Salud (OMS) recomienda que ese porcentaje se quede por debajo del 5 %.
+            La tasa de positividad es  el porcentaje de personas que dan positivo para la infección de entre todas a las que se les ha hecho prueba PCR durante un tiempo determinado. La Organización Mundial de la Salud (OMS) recomienda que ese porcentaje se quede por debajo del 5 %. La vacunación en Chile debiese llegar al menos a un 80 %.
         '''),
-        html.H2(children="Tasa de positividad por día en el territorio nacional"),
+        html.H2(children="Tasa de positividad y vacunación por día en el territorio nacional"),
         dcc.Graph(
             id='general-positivity',
             figure=country_positivity_fig()
