@@ -4,8 +4,10 @@ import dash_core_components as dcc
 import dash_html_components as html
 import flask
 import plotly.express as px
+import plotly.subplots
 import dash.dependencies
 import pandas as pd
+import numpy as np
 import geopandas as gpd
 import json
 import random
@@ -17,14 +19,18 @@ logger = logging.getLogger(__name__)
 app_folder = pathlib.Path(__file__).parent.absolute()
 
 country_data = None
+country_vaccination_data = None
 positivity_by_commune = None
 cases_by_region = None
 tests_by_region = None
 country_data_last_update = 0
+country_vaccination_data_update = 0
 positivity_by_commune_last_update = 0
 cases_by_region_last_update = 0
 tests_by_region_last_update = 0
-period = 30
+
+period = 3600
+POPULATION = 18.73*10**6
 
 green_rect_props = {
     "y0":0,
@@ -53,7 +59,7 @@ figure_layout = {
     "legend": {
         "orientation": 'h',
         "yanchor":"bottom",
-        "y":1.02,
+        "y":1.03,
         "xanchor":"right",
         "x":1
     },
@@ -116,6 +122,18 @@ def get_country_data():
         country_data_last_update = time.time()
     # country_data["Total"] = random.random()
     return country_data[country_data.Serie.isin(["positividad"])]
+
+def get_country_vaccination_data():
+    global country_vaccination_data
+    global country_vaccination_data_update
+    if time.time() - country_vaccination_data_update > period:
+        logger.info("downloading country_vaccination_data")
+        vaccination_country_data = pd.read_csv("https://github.com/MinCiencia/Datos-COVID19/raw/master/output/producto76/vacunacion_std.csv")
+        vaccination_country_data = vaccination_country_data.loc[(vaccination_country_data.Region == "Total") & (vaccination_country_data.Dosis == "Segunda")]
+        vaccination_country_data.loc[:,"Total"] = vaccination_country_data.Cantidad.cumsum()
+        vaccination_country_data.replace(0, np.nan, inplace=True)
+        vaccination_country_data.loc[:,"Proporción de vacunados"] = vaccination_country_data["Total"] / POPULATION
+    return vaccination_country_data
 
 def get_communal_data(selected_communes = None):
     global positivity_by_commune
@@ -204,14 +222,41 @@ def choropleth_country_fig():
     return fig
 
 def country_positivity_fig():
-    fig = px.line(
+    fig = plotly.subplots.make_subplots(specs=[[{"secondary_y": True}]])
+    f1 = px.line(
         data_frame = get_country_data(),
         x = "Fecha",
         y = "Total",
-        labels=dict(Total="Tasa de positividad")
+        labels=dict(Total="Tasa de positividad",
+        )
     )
+    f2 = px.line(
+        data_frame = get_country_vaccination_data(),
+        x = "Fecha",
+        y = "Proporción de vacunados",
+    )
+    f1['data'][0]['showlegend']=True
+    f1['data'][0]['name']='Positividad'
+    f2['data'][0]['showlegend']=True
+    f2['data'][0]['name']='Vacunación'
+    f2.update_traces(yaxis="y2")
+    fig.add_traces(f1.data + f2.data)
+    fig.layout.xaxis.title="Fecha"
+    fig.layout.yaxis.title="Tasa de positividad"
+    fig.layout.yaxis2.title="Proporción de vacunados"
+    fig.for_each_trace(lambda t: t.update(line=dict(color=t.marker.color)))
     fig.add_hrect(**green_rect_props)
     fig.update_layout(**figure_layout)
+    yaxis2_layout = {
+        "yaxis2":{
+            "tickformat":".1%",
+            "fixedrange":True,
+            "automargin":True,
+            "range":[0,1]
+            },
+    }
+    fig.update_layout(**yaxis2_layout)
+    fig.update_layout(showlegend=True)
     xaxes_layout = {
         "rangeslider":{
             "visible":True
