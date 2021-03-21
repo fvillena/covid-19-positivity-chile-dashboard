@@ -266,7 +266,7 @@ def country_positivity_fig():
     return fig
 
 def serve_layout():
-    return html.Div(className = "container-md" ,children=[
+    return dbc.Container(className = "md" ,children=[
         html.H1(children='Positividad y Vacunación por Coronavirus en Chile'),
 
         html.Div(children=f'''
