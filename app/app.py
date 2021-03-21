@@ -23,6 +23,8 @@ country_vaccination_data = None
 positivity_by_commune = None
 cases_by_region = None
 tests_by_region = None
+step_data = None
+step_data_last_update = 0
 country_data_last_update = 0
 country_vaccination_data_update = 0
 positivity_by_commune_last_update = 0
@@ -113,6 +115,17 @@ def normalize(word):
     result = [l for l in word if l in alphabet]
     return "".join(result)
 
+def get_step_data():
+    global step_data
+    global step_data_last_update
+    if time.time() - step_data_last_update > period:
+        logger.info("downloading step_data")
+        step_data = pd.read_csv("https://github.com/MinCiencia/Datos-COVID19/raw/master/output/producto74/paso_a_paso_std.csv")
+        step_data.rename(columns={"comuna_residencia":"Comuna"},inplace=True)
+        step_data = step_data[(step_data.zona == "Total") & (step_data.codigo_region == 13)]
+        step_data = step_data.pivot(index="Comuna", columns="Fecha", values="Paso")
+    return step_data
+
 def get_country_data():
     global country_data
     global country_data_last_update
@@ -181,6 +194,18 @@ def get_country_choropeth_data():
     positivity_by_region = get_by_region_data()
     max_date_idx = positivity_by_region.groupby(by=["Region"])["Fecha"].idxmax()
     return positivity_by_region.loc[max_date_idx]
+
+def step_fig():
+    fig = px.imshow(
+        get_step_data(),
+        color_continuous_scale=["#dc3545","#ffc107","yellow","#28a745"],
+        zmin=1,
+        zmax=4,
+        height=1000
+    )
+    fig.layout.coloraxis.showscale=False
+    fig.update_traces(hovertemplate='Fecha: %{x} <br>Comuna: %{y} <extra></extra>')
+    return fig
 
 def choropleth_fig():
     fig = px.choropleth_mapbox(
@@ -297,6 +322,19 @@ def serve_layout():
         dcc.Graph(
             id='choropleth-country',
             figure=choropleth_country_fig()
+        ),
+        html.H2(children="Estado del programa paso a paso en la Región Metropolitana"),
+        html.Span(
+            [
+                dbc.Badge("Cuarentena", pill=True, color="danger", className="mr-1"),
+                dbc.Badge("Transición", pill=True, color="warning", className="mr-1"),
+                dbc.Badge("Preparación", pill=True, color="yellow", className="mr-1", style={'background-color': 'yellow'}),
+                dbc.Badge("Apertura inicial", pill=True, color="success", className="mr-1"),
+            ]
+        ),
+        dcc.Graph(
+            id='step',
+            figure=step_fig()
         ),
         html.Div(children=[html.Hr()] + ["Hecho con 🧠 y 🐍 por "] + [html.A("Fabián Villena", href="https://fabianvillena.cl/")]),
     ])
