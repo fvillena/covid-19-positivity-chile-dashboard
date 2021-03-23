@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 app_folder = pathlib.Path(__file__).parent.absolute()
 
 country_data = None
-country_vaccination_data = None
+vaccination_country_data = None
 positivity_by_commune = None
 cases_by_region = None
 tests_by_region = None
@@ -124,6 +124,7 @@ def get_step_data():
         step_data.rename(columns={"comuna_residencia":"Comuna"},inplace=True)
         step_data = step_data[(step_data.zona == "Total") & (step_data.codigo_region == 13)]
         step_data = step_data.pivot(index="Comuna", columns="Fecha", values="Paso")
+        step_data_last_update = time.time()
     return step_data
 
 def get_country_data():
@@ -133,11 +134,10 @@ def get_country_data():
         logger.info("downloading country_data")
         country_data = pd.read_csv("https://github.com/MinCiencia/Datos-COVID19/raw/master/output/producto49/Positividad_Diaria_Media_std.csv",parse_dates=["Fecha"])
         country_data_last_update = time.time()
-    # country_data["Total"] = random.random()
     return country_data[country_data.Serie.isin(["positividad"])]
 
 def get_country_vaccination_data():
-    global country_vaccination_data
+    global vaccination_country_data
     global country_vaccination_data_update
     if time.time() - country_vaccination_data_update > period:
         logger.info("downloading country_vaccination_data")
@@ -146,6 +146,7 @@ def get_country_vaccination_data():
         vaccination_country_data.loc[:,"Total"] = vaccination_country_data.Cantidad
         vaccination_country_data.replace(0, np.nan, inplace=True)
         vaccination_country_data.loc[:,"Proporción de vacunados"] = vaccination_country_data["Total"] / POPULATION
+        country_vaccination_data_update = time.time()
     return vaccination_country_data
 
 def get_communal_data(selected_communes = None):
@@ -154,9 +155,8 @@ def get_communal_data(selected_communes = None):
     if time.time() - positivity_by_commune_last_update > period:
         logger.info("downloading communal_data")
         positivity_by_commune = pd.read_csv("https://github.com/MinCiencia/Datos-COVID19/raw/master/output/producto65/PositividadPorComuna_std.csv",parse_dates=["Fecha"])
-        positivity_by_commune_last_update = time.time()
         positivity_by_commune["Positividad"] = positivity_by_commune["Positividad"]/100
-    # positivity_by_commune["Positividad"] = random.random()
+        positivity_by_commune_last_update = time.time()
     if selected_communes == None:
         return positivity_by_commune
     else:
@@ -177,9 +177,11 @@ def get_by_region_data():
         logger.info("downloading cases_by_region")
         cases_by_region = pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto3/TotalesPorRegion_std.csv")
         cases_by_region = cases_by_region.loc[cases_by_region.Categoria == "Casos nuevos totales"]
+        cases_by_region_last_update = time.time()
     if time.time() - tests_by_region_last_update > period:
         logger.info("downloading tests_by_region")
         tests_by_region = pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto7/PCR_std.csv")
+        tests_by_region_last_update = time.time()
     positivity_by_region = cases_by_region.merge(
         tests_by_region.rename(columns={"fecha":"Fecha","numero":"Pruebas"})[["Region","Fecha","Pruebas","Codigo region"]],
         how="inner",
