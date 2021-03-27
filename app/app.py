@@ -315,16 +315,14 @@ def serve_layout():
             ),
             dcc.Graph(id='graph-with-dropdown'),
         ]),
-        html.H2(children="Última tasa de positividad en la Región Metropolitana"),
-        dcc.Graph(
-            id='choropleth',
-            figure=choropleth_fig()
-        ),
-        html.H2(children="Última tasa de positividad en el territorio nacional"),
-        dcc.Graph(
-            id='choropleth-country',
-            figure=choropleth_country_fig()
-        ),
+        html.H2(children="Última tasa de positividad"),
+        html.Div([
+            dcc.Tabs(id="positivity-choropleth", value='positivity-choropleth-rm', children=[
+                dcc.Tab(label='Región Metropolitana', value='positivity-choropleth-rm'),
+                dcc.Tab(label='Chile', value='positivity-choropleth-chile'),
+            ]),
+            html.Div(id='positivity-choropleth-content')
+        ]),
         html.H2(children="Estado del programa paso a paso en la Región Metropolitana"),
         html.Span(
             [
@@ -360,6 +358,20 @@ app.title = 'Tasa de positividad por COVID-19 en Chile'
 
 
 app.layout = serve_layout
+
+@app.callback(dash.dependencies.Output('positivity-choropleth-content', 'children'),
+              dash.dependencies.Input('positivity-choropleth', 'value'))
+def render_content(tab):
+    if tab == 'positivity-choropleth-rm':
+        return dcc.Graph(
+                id='choropleth',
+                figure=choropleth_fig()
+            )
+    elif tab == 'positivity-choropleth-chile':
+        return dcc.Graph(
+                id='choropleth-country',
+                figure=choropleth_country_fig()
+            )
 
 @app.callback(
     dash.dependencies.Output('graph-with-dropdown', 'figure'),
