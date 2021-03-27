@@ -142,7 +142,7 @@ def get_country_vaccination_data():
     if time.time() - country_vaccination_data_update > period:
         logger.info("downloading country_vaccination_data")
         vaccination_country_data = pd.read_csv("https://github.com/MinCiencia/Datos-COVID19/raw/master/output/producto76/vacunacion_std.csv")
-        vaccination_country_data = vaccination_country_data.loc[(vaccination_country_data.Region == "Total") & (vaccination_country_data.Dosis == "Primera")]
+        vaccination_country_data = vaccination_country_data.loc[vaccination_country_data.Region == "Total"]
         vaccination_country_data.loc[:,"Total"] = vaccination_country_data.Cantidad
         vaccination_country_data.replace(0, np.nan, inplace=True)
         vaccination_country_data.loc[:,"Proporción de vacunados"] = vaccination_country_data["Total"] / POPULATION
@@ -272,6 +272,7 @@ def country_vaccination_fig():
         data_frame = get_country_vaccination_data(),
         x = "Fecha",
         y = "Proporción de vacunados",
+        color = "Dosis"
 
     )
     fig.update_layout(**figure_layout)
