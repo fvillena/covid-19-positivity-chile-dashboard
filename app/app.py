@@ -248,48 +248,40 @@ def choropleth_country_fig():
     fig.update_layout(coloraxis_showscale=False,margin={"r":5,"t":0,"l":5,"b":0})
     return fig
 
-def country_positivity_fig():
-    fig = plotly.subplots.make_subplots(specs=[[{"secondary_y": True}]])
-    f1 = px.line(
+def country_positivity_fig_new():
+    fig = px.line(
         data_frame = get_country_data(),
         x = "Fecha",
         y = "Total",
-        labels=dict(Total="Tasa de positividad",
-        )
+        labels=dict(Total="Tasa de positividad"),
+
     )
-    f2 = px.line(
-        data_frame = get_country_vaccination_data(),
-        x = "Fecha",
-        y = "Proporción de vacunados",
-    )
-    f1['data'][0]['showlegend']=True
-    f1['data'][0]['name']='Positividad'
-    f2['data'][0]['showlegend']=True
-    f2['data'][0]['name']='Vacunación'
-    f2.update_traces(yaxis="y2")
-    fig.add_traces(f1.data + f2.data)
-    fig.layout.xaxis.title="Fecha"
-    fig.layout.yaxis.title="Tasa de positividad"
-    fig.layout.yaxis2.title="Proporción de vacunados"
-    fig.for_each_trace(lambda t: t.update(line=dict(color=t.marker.color)))
     fig.add_hrect(**green_rect_props)
     fig.update_layout(**figure_layout)
-    yaxis2_layout = {
-        "yaxis2":{
-            "tickformat":".1%",
-            "fixedrange":True,
-            "automargin":True,
-            "range":[0,1]
-            },
-    }
-    fig.update_layout(**yaxis2_layout)
-    fig.update_layout(showlegend=True)
+    fig.layout.yaxis.title="Tasa de positividad"
     xaxes_layout = {
         "rangeslider":{
             "visible":True
             },
     }
     fig.update_xaxes(**xaxes_layout)
+    return fig
+
+def country_vaccination_fig():
+    fig = px.line(
+        data_frame = get_country_vaccination_data(),
+        x = "Fecha",
+        y = "Proporción de vacunados",
+
+    )
+    fig.update_layout(**figure_layout)
+    xaxes_layout = {
+        "rangeslider":{
+            "visible":True
+            },
+    }
+    fig.update_xaxes(**xaxes_layout)
+    fig.layout.yaxis.range=[0,1]
     return fig
 
 def serve_layout():
@@ -299,22 +291,19 @@ def serve_layout():
         html.Div(children=f'''
             La tasa de positividad es  el porcentaje de personas que dan positivo para la infección de entre todas a las que se les ha hecho prueba PCR durante un tiempo determinado. La Organización Mundial de la Salud (OMS) recomienda que ese porcentaje se quede por debajo del 5 %. La vacunación en Chile debiese llegar al menos a un 80 %.
         '''),
-        html.H2(children="Tasa de positividad y vacunación por día en el territorio nacional"),
-        dcc.Graph(
-            id='general-positivity',
-            figure=country_positivity_fig()
-        ),
-        html.H2(children="Tasa de positividad semanal por comuna"),
+        html.H2(children="Tasa de positividad"),
         html.Div([
-            dcc.Dropdown(
-                options=commune_options,
-                value=[],
-                placeholder="Seleccione las comunas a visualizar",
-                multi=True,
-                id="commune-dropdown"
-            ),
-            dcc.Graph(id='graph-with-dropdown'),
+            dcc.Tabs(id="positivity-graph", value='positivity-graph-chile', children=[
+                dcc.Tab(label='Chile', value='positivity-graph-chile'),
+                dcc.Tab(label='Comunal', value='positivity-graph-communal'),
+            ]),
+            html.Div(id='positivity-graph-content')
         ]),
+        html.H2(children="Vacunación en el territorio nacional"),
+        dcc.Graph(
+            id='general-vaccination',
+            figure=country_vaccination_fig()
+        ),
         html.H2(children="Última tasa de positividad"),
         html.Div([
             dcc.Tabs(id="positivity-choropleth", value='positivity-choropleth-rm', children=[
@@ -359,19 +348,45 @@ app.title = 'Tasa de positividad por COVID-19 en Chile'
 
 app.layout = serve_layout
 
+@app.callback(dash.dependencies.Output('positivity-graph-content', 'children'),
+              dash.dependencies.Input('positivity-graph', 'value'))
+def render_content_positivity_graph(tab):
+    if tab == 'positivity-graph-chile':
+        return dcc.Graph(
+            id='general-positivity',
+            figure=country_positivity_fig_new()
+        ),
+    elif tab == 'positivity-graph-communal':
+        return html.Div([
+            dcc.Dropdown(
+                options=commune_options,
+                value=[],
+                placeholder="Seleccione las comunas a visualizar",
+                multi=True,
+                id="commune-dropdown"
+            ),
+            dcc.Graph(id='graph-with-dropdown'),
+        ]),
+
 @app.callback(dash.dependencies.Output('positivity-choropleth-content', 'children'),
               dash.dependencies.Input('positivity-choropleth', 'value'))
-def render_content(tab):
+def render_content_positivity_choropleth(tab):
     if tab == 'positivity-choropleth-rm':
         return dcc.Graph(
                 id='choropleth',
                 figure=choropleth_fig()
             )
     elif tab == 'positivity-choropleth-chile':
-        return dcc.Graph(
-                id='choropleth-country',
-                figure=choropleth_country_fig()
-            )
+        return html.Div([
+            dcc.Dropdown(
+                options=commune_options,
+                value=[],
+                placeholder="Seleccione las comunas a visualizar",
+                multi=True,
+                id="commune-dropdown"
+            ),
+            dcc.Graph(id='graph-with-dropdown'),
+        ]),
 
 @app.callback(
     dash.dependencies.Output('graph-with-dropdown', 'figure'),
