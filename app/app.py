@@ -378,16 +378,10 @@ def render_content_positivity_choropleth(tab):
                 figure=choropleth_fig()
             )
     elif tab == 'positivity-choropleth-chile':
-        return html.Div([
-            dcc.Dropdown(
-                options=commune_options,
-                value=[],
-                placeholder="Seleccione las comunas a visualizar",
-                multi=True,
-                id="commune-dropdown"
-            ),
-            dcc.Graph(id='graph-with-dropdown'),
-        ]),
+        return dcc.Graph(
+                id='choropleth-country',
+                figure=choropleth_country_fig()
+            )
 
 @app.callback(
     dash.dependencies.Output('graph-with-dropdown', 'figure'),
