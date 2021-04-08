@@ -281,6 +281,18 @@ def country_vaccination_fig():
             "visible":True
             },
     }
+    fig.add_hrect(**{
+    "y0":0.8,
+    "y1":1,
+    "line_width":0,
+    "fillcolor":"green",
+    "opacity":0.2,
+    "annotation_text":"Vacunación recomendada",
+    "annotation_position":"bottom left",
+    "annotation_font":{
+        "color":"darkgreen"
+    }
+})
     fig.update_xaxes(**xaxes_layout)
     fig.layout.yaxis.range=[0,1]
     return fig
