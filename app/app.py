@@ -5,6 +5,7 @@ import dash_html_components as html
 import flask
 import plotly.express as px
 import plotly.subplots
+import plotly.graph_objects as go
 import dash.dependencies
 import pandas as pd
 import numpy as np
@@ -297,6 +298,30 @@ def country_vaccination_fig():
     fig.layout.yaxis.range=[0,1]
     return fig
 
+def indicators_fig():
+    last_positivity = get_country_data().sort_values("Fecha",ascending=False).reset_index(drop=True).loc[0]
+    last_vaccination = get_country_vaccination_data()[get_country_vaccination_data()["Dosis"] == "Primera"].sort_values("Fecha",ascending=False).reset_index(drop=True).loc[0]
+    fig = go.Figure()
+    fig.add_trace(go.Indicator(
+        mode = "number",
+        title = {
+            "text":f"Positividad<br><span style='font-size:0.8em;color:gray'>{last_positivity['Fecha'].strftime('%d/%m/%Y')}</span>"
+        },
+        number = {'valueformat':".1%"},
+        value = last_positivity["Total"],
+        domain = {'row': 0, 'column': 0}))
+    fig.add_trace(go.Indicator(
+        mode = "number",
+        title = {
+            "text":f"Vacunación<br><span style='font-size:0.8em;color:gray'>{pd.to_datetime(last_vaccination['Fecha']).strftime('%d/%m/%Y')}</span>"
+        },
+        number = {'valueformat':".1%"},
+        value = last_vaccination["Proporción de vacunados"],
+        domain = {'row': 0, 'column': 1}))
+    fig.update_layout(
+        grid = {'rows': 1, 'columns': 2, 'pattern': "independent"})
+    return fig
+
 def serve_layout():
     return dbc.Container(className = "md" ,children=[
         html.H1(children='Positividad y Vacunación por Coronavirus en Chile'),
@@ -304,6 +329,11 @@ def serve_layout():
         html.Div(children=f'''
             La tasa de positividad es  el porcentaje de personas que dan positivo para la infección de entre todas a las que se les ha hecho prueba PCR durante un tiempo determinado. La Organización Mundial de la Salud (OMS) recomienda que ese porcentaje se quede por debajo del 5 %. La vacunación en Chile debiese llegar al menos a un 80 %.
         '''),
+        html.H2(children="Indicadores"),
+        dcc.Graph(
+            id='indicators',
+            figure=indicators_fig()
+        ),
         html.H2(children="Tasa de positividad"),
         html.Div([
             dcc.Tabs(id="positivity-graph", value='positivity-graph-chile', children=[
