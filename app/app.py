@@ -8,6 +8,7 @@ import plotly.subplots
 import plotly.graph_objects as go
 import dash.dependencies
 import pandas as pd
+import scipy.stats
 import numpy as np
 import geopandas as gpd
 import json
@@ -128,14 +129,23 @@ def get_step_data():
         step_data_last_update = time.time()
     return step_data
 
-def get_country_data():
+def get_trend(y):
+    x = range(len(y))
+    result = scipy.stats.linregress(x, y)
+    return result.slope
+
+def get_country_data(return_moving_average = False):
     global country_data
     global country_data_last_update
     if time.time() - country_data_last_update > period:
         logger.info("downloading country_data")
         country_data = pd.read_csv("https://github.com/MinCiencia/Datos-COVID19/raw/master/output/producto49/Positividad_Diaria_Media_std.csv",parse_dates=["Fecha"])
         country_data_last_update = time.time()
-    return country_data[country_data.Serie.isin(["positividad"])]
+    if return_moving_average:
+        result = country_data[country_data.Serie.isin(["mediamovil_positividad"])]
+    else:
+        result = country_data[country_data.Serie.isin(["positividad"])]
+    return result
 
 def get_country_vaccination_data():
     global vaccination_country_data
@@ -301,6 +311,7 @@ def country_vaccination_fig():
 def indicators_fig():
     last_positivity = get_country_data().sort_values("Fecha",ascending=False).reset_index(drop=True).loc[0]
     last_vaccination = get_country_vaccination_data()[get_country_vaccination_data()["Dosis"] == "Primera"].sort_values("Fecha",ascending=False).reset_index(drop=True).loc[0]
+    last_last_vaccination = get_country_vaccination_data()[get_country_vaccination_data()["Dosis"] == "Primera"].sort_values("Fecha",ascending=False).reset_index(drop=True).loc[1]
     fig = go.Figure()
     fig.add_trace(go.Indicator(
         mode = "number",
@@ -318,8 +329,32 @@ def indicators_fig():
         number = {'valueformat':".1%"},
         value = last_vaccination["Proporción de vacunados"],
         domain = {'row': 0, 'column': 1}))
+    fig.add_trace(go.Indicator(
+        title = "<span style='font-size:0.8em'>Cambio diario</span>",
+        mode = "delta",
+        value = get_trend(get_country_data(return_moving_average=True).iloc[-7:,:]["Total"]),
+        delta = go.indicator.Delta(
+            reference = 0, 
+            valueformat = ".2%",
+            decreasing = go.indicator.delta.Decreasing(
+                color="green"
+            ),
+            increasing = go.indicator.delta.Increasing(
+                color="red"
+            ),
+            ),
+        domain = {'row': 1, 'column': 0}))
+    fig.add_trace(go.Indicator(
+        title = "<span style='font-size:0.8em'>Cambio diario</span>",
+        mode = "delta",
+        value = last_vaccination["Proporción de vacunados"],
+        delta = go.indicator.Delta(
+            reference = last_last_vaccination["Proporción de vacunados"], 
+            valueformat = ".2%"
+            ),
+        domain = {'row': 1, 'column': 1}))
     fig.update_layout(
-        grid = {'rows': 1, 'columns': 2, 'pattern': "independent"})
+        grid = {'rows': 2, 'columns': 2, 'pattern': "independent"})
     return fig
 
 def serve_layout():

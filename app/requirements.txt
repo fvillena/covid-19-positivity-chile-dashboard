@@ -4,3 +4,4 @@ dash-bootstrap-components
 pandas
 geopandas
 requests
+scipy
