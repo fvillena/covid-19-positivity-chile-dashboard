@@ -157,6 +157,8 @@ def get_country_vaccination_data():
         vaccination_country_data.loc[:,"Total"] = vaccination_country_data.Cantidad
         vaccination_country_data.replace(0, np.nan, inplace=True)
         vaccination_country_data.loc[:,"Proporción de vacunados"] = vaccination_country_data["Total"] / POPULATION
+        vaccination_country_data.loc[:,"Esquema"] = np.where(vaccination_country_data.Dosis.isin(["Segunda","Unica"]),"Completo","Incompleto")
+        vaccination_country_data = vaccination_country_data.groupby(by=["Region","Fecha","Esquema"])[["Cantidad","Total","Proporción de vacunados"]].sum().reset_index()
         country_vaccination_data_update = time.time()
     return vaccination_country_data
 
@@ -283,7 +285,7 @@ def country_vaccination_fig():
         data_frame = get_country_vaccination_data(),
         x = "Fecha",
         y = "Proporción de vacunados",
-        color = "Dosis"
+        color = "Esquema"
 
     )
     fig.update_layout(**figure_layout)
@@ -310,8 +312,8 @@ def country_vaccination_fig():
 
 def indicators_fig():
     last_positivity = get_country_data().sort_values("Fecha",ascending=False).reset_index(drop=True).loc[0]
-    last_vaccination = get_country_vaccination_data()[get_country_vaccination_data()["Dosis"] == "Primera"].sort_values("Fecha",ascending=False).reset_index(drop=True).loc[0]
-    last_last_vaccination = get_country_vaccination_data()[get_country_vaccination_data()["Dosis"] == "Primera"].sort_values("Fecha",ascending=False).reset_index(drop=True).loc[1]
+    last_vaccination = get_country_vaccination_data()[get_country_vaccination_data()["Esquema"] == "Completo"].sort_values("Fecha",ascending=False).reset_index(drop=True).loc[0]
+    last_last_vaccination = get_country_vaccination_data()[get_country_vaccination_data()["Esquema"] == "Completo"].sort_values("Fecha",ascending=False).reset_index(drop=True).loc[1]
     fig = go.Figure()
     fig.add_trace(go.Indicator(
         mode = "number",
