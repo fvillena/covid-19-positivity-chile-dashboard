@@ -140,6 +140,11 @@ def get_country_data(return_moving_average = False):
     if time.time() - country_data_last_update > period:
         logger.info("downloading country_data")
         country_data = pd.read_csv("https://github.com/MinCiencia/Datos-COVID19/raw/master/output/producto49/Positividad_Diaria_Media_std.csv",parse_dates=["Fecha"])
+        mapper = {
+            "positividad pcr":"positividad",
+            "mediamovil_positividad_pcr":"mediamovil_positividad"
+        }
+        country_data["Serie"] = country_data.Serie.apply(lambda x: mapper[x] if x in mapper else x)
         country_data_last_update = time.time()
     if return_moving_average:
         result = country_data[country_data.Serie.isin(["mediamovil_positividad"])]
