@@ -172,7 +172,7 @@ def get_communal_data(selected_communes = None):
     global positivity_by_commune_last_update
     if time.time() - positivity_by_commune_last_update > period:
         logger.info("downloading communal_data")
-        positivity_by_commune = pd.read_csv("https://github.com/MinCiencia/Datos-COVID19/raw/master/output/producto65/PositividadPorComuna_std.csv",parse_dates=["Fecha"])
+        positivity_by_commune = pd.read_csv("https://github.com/MinCiencia/Datos-COVID19/raw/master/output/producto65/PositividadPorComuna_std.csv",parse_dates=["Fecha"], na_values=["-"])
         positivity_by_commune["Positividad"] = positivity_by_commune["Positividad"]/100
         positivity_by_commune_last_update = time.time()
     if selected_communes == None:
